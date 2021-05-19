@@ -129,6 +129,8 @@ func addCryptFuncs(tr *TemplateResource) {
 }
 
 func (t *TemplateResource) process() error {
+	log.Debug("Test: sync file")
+
 	if err := t.setFileMode(); err != nil {
 		return err
 	}

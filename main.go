@@ -54,6 +54,7 @@ func main() {
 			log.Info(fmt.Sprintf("Captured %v. Exiting...", s))
 			close(doneChan)
 		case <-doneChan:
+			log.Info("Captured done!")
 			os.Exit(0)
 		}
 	}

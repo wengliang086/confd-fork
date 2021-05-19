@@ -56,18 +56,18 @@ type watchProcessor struct {
 }
 
 func (p *watchProcessor) Process() {
-	//panic("implement me")
 	defer close(p.doneChan)
-	ts, err := getTemplateResources(p.config)
+	templates, err := getTemplateResources(p.config)
 	if err != nil {
 		log.Fatal(err.Error())
 		return
 	}
-	for _, t := range ts {
-		t := t
+	for _, template := range templates {
+		t := template
 		p.wg.Add(1)
 		go p.monitorPrefix(t)
 	}
+	p.wg.Wait()
 }
 
 func (p *watchProcessor) monitorPrefix(t *TemplateResource) {

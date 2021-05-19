@@ -54,21 +54,20 @@ func (w *Watch) update(newRevision int64) {
 func createWatch(client *clientv3.Client, prefix string) (*Watch, error) {
 	w := &Watch{0, make(chan struct{}), sync.RWMutex{}}
 	go func() {
-		rch := client.Watch(context.Background(), prefix, clientv3.WithPrefix(),
-			clientv3.WithCreatedNotify())
+		watchChan := client.Watch(context.Background(), prefix, clientv3.WithPrefix(), clientv3.WithCreatedNotify())
 		log.Debug("Watch created on %s", prefix)
 		for {
-			for wresp := range rch {
-				if wresp.CompactRevision > w.revision {
+			for watchResponse := range watchChan {
+				if watchResponse.CompactRevision > w.revision {
 					// respect CompactRevision
-					w.update(wresp.CompactRevision)
-					log.Debug("Watch to '%s' updated to %d by CompactRevision", prefix, wresp.CompactRevision)
-				} else if wresp.Header.GetRevision() > w.revision {
+					w.update(watchResponse.CompactRevision)
+					log.Debug("Watch to '%s' updated to %d by CompactRevision", prefix, watchResponse.CompactRevision)
+				} else if watchResponse.Header.GetRevision() > w.revision {
 					// Watch created or updated
-					w.update(wresp.Header.GetRevision())
-					log.Debug("Watch to '%s' updated to %d by header revision", prefix, wresp.Header.GetRevision())
+					w.update(watchResponse.Header.GetRevision())
+					log.Debug("Watch to '%s' updated to %d by header revision", prefix, watchResponse.Header.GetRevision())
 				}
-				if err := wresp.Err(); err != nil {
+				if err := watchResponse.Err(); err != nil {
 					log.Error("Watch error: %s", err.Error())
 				}
 			}
@@ -79,12 +78,10 @@ func createWatch(client *clientv3.Client, prefix string) (*Watch, error) {
 			time.Sleep(time.Duration(1) * time.Second)
 			// Start from next revision so we are not missing anything
 			if w.revision > 0 {
-				rch = client.Watch(context.Background(), prefix, clientv3.WithPrefix(),
-					clientv3.WithRev(w.revision+1))
+				watchChan = client.Watch(context.Background(), prefix, clientv3.WithPrefix(), clientv3.WithRev(w.revision+1))
 			} else {
 				// Start from the latest revision
-				rch = client.Watch(context.Background(), prefix, clientv3.WithPrefix(),
-					clientv3.WithCreatedNotify())
+				watchChan = client.Watch(context.Background(), prefix, clientv3.WithPrefix(), clientv3.WithCreatedNotify())
 			}
 		}
 	}()
