@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"io/ioutil"
 	"strings"
 	"sync"
@@ -31,6 +32,7 @@ func (w *Watch) WaitNext(ctx context.Context, lastRevision int64, notify chan<- 
 		w.rwl.RUnlock()
 		select {
 		case <-cond:
+			log.Debug("Test: received new version")
 		case <-ctx.Done():
 			return
 		}
@@ -38,6 +40,7 @@ func (w *Watch) WaitNext(ctx context.Context, lastRevision int64, notify chan<- 
 	// We accept larger revision, so do not need to use RLock
 	select {
 	case notify <- w.revision:
+		log.Debug(fmt.Sprintf("Test: notify new version=%v", w.revision))
 	case <-ctx.Done():
 	}
 }
@@ -249,8 +252,8 @@ func (c *Client) WatchPrefix(prefix string, keys []string, waitIndex uint64, sto
 
 	notify := make(chan int64)
 	// Wait for all watches
-	for _, v := range watches {
-		go v.WaitNext(ctx, int64(waitIndex), notify)
+	for _, w := range watches {
+		go w.WaitNext(ctx, int64(waitIndex), notify)
 	}
 	select {
 	case nextRevision := <-notify:

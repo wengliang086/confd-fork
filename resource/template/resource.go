@@ -128,12 +128,27 @@ func addCryptFuncs(tr *TemplateResource) {
 	})
 }
 
+func printContent(t *TemplateResource) error {
+	result, err := t.storeClient.GetValues(util.AppendPrefix(t.Prefix, t.Keys))
+	if err != nil {
+		return err
+	}
+
+	log.Debug("Got the following map from store: %v", result)
+	return nil
+}
+
 func (t *TemplateResource) process() error {
 	log.Debug("Test: sync file")
 
 	if err := t.setFileMode(); err != nil {
 		return err
 	}
+
+	if err := printContent(t); err != nil {
+		return err
+	}
+
 	//if err := t.setVars(); err != nil {
 	//	return err
 	//}
